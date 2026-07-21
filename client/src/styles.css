@@ -1,0 +1,50 @@
+:root {
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: #1a1a1a;
+  background: #f7f7f8;
+}
+
+body {
+  margin: 0;
+  padding: 2rem;
+}
+
+.app {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 1.5rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #ececec;
+  font-size: 0.9rem;
+}
+
+th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.error {
+  color: #b00020;
+  margin: 0.5rem 0;
+}
+
+.settlement {
+  font-size: 0.9rem;
+  color: #444;
+}
