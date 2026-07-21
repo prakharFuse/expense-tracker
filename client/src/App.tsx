@@ -21,10 +21,14 @@ interface Settlement {
   amountCents: number;
 }
 
+const dollarGroupFormat = new Intl.NumberFormat('en-US');
+
 function money(cents: number): string {
   const sign = cents < 0 ? '-' : '';
   const abs = Math.abs(cents);
-  return `${sign}$${(abs / 100).toFixed(2)}`;
+  const dollars = Math.floor(abs / 100);
+  const remainder = abs % 100;
+  return `${sign}$${dollarGroupFormat.format(dollars)}.${remainder.toString().padStart(2, '0')}`;
 }
 
 export default function App() {
