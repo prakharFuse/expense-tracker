@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
 import express from 'express';
 import expensesRouter from './expenses.js';
+import { formatMoney } from '../lib/money.js';
 
 // Isolated throwaway DB — set before the first getDb() call (handlers call
 // getDb() lazily, so setting it here, before any request, is enough).
@@ -105,12 +106,25 @@ test('GET /api/expenses/:id returns 404 for a missing expense', async () => {
   assert.equal((res.json as { error: string }).error, 'Expense not found');
 });
 
-test('GET /api/expenses/stats returns totals by category', async () => {
+test('GET /api/expenses/stats returns a grouped totalFormatted', async () => {
   const res = await call('GET', '/api/expenses/stats');
   assert.equal(res.status, 200);
-  const body = res.json as { totalCents: number; byCategory: { category: string; total: number }[] };
-  assert.ok(body.totalCents > 0);
-  assert.ok(Array.isArray(body.byCategory));
+  const body = res.json as { totalCents: number; totalFormatted: string };
+  // Seed data alone already exceeds $1,000, so the grouped output must contain a comma.
+  assert.equal(body.totalFormatted, formatMoney(body.totalCents));
+  assert.match(body.totalFormatted, /^\$\d{1,3}(,\d{3})+\.\d{2}$/);
+});
+
+test('GET /api/expenses/stats returns a grouped totalFormatted per category', async () => {
+  const res = await call('GET', '/api/expenses/stats');
+  assert.equal(res.status, 200);
+  const body = res.json as {
+    byCategory: { category: string; total: number; totalFormatted: string }[];
+  };
+  assert.ok(body.byCategory.length > 0);
+  for (const row of body.byCategory) {
+    assert.equal(row.totalFormatted, formatMoney(row.total));
+  }
 });
 
 test('GET /api/expenses/balances returns balances that sum to zero', async () => {
@@ -129,5 +143,14 @@ test('GET /api/expenses/export returns CSV with a header row', async () => {
   const res = await call('GET', '/api/expenses/export');
   assert.equal(res.status, 200);
   assert.ok(typeof res.json === 'string');
-  assert.ok((res.json as string).startsWith('id,description,amount_cents'));
+  const [header] = (res.json as string).split('\n');
+  assert.equal(header, 'id,description,amount_cents,amount,paid_by,participants,category,spent_on');
+});
+
+test('GET /api/expenses/export keeps amount_cents and adds a quoted formatted amount column', async () => {
+  const res = await call('GET', '/api/expenses/export');
+  assert.equal(res.status, 200);
+  const lines = (res.json as string).split('\n');
+  const row = lines.find((line) => line.startsWith('1,Team dinner,'));
+  assert.equal(row, '1,Team dinner,12000,"$120.00",alice,"alice,bob,carol",Food,2024-05-01');
 });
