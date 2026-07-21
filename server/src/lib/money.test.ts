@@ -2,15 +2,32 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { formatMoney, splitEvenCents } from './money.js';
 
-test('formatMoney formats whole and fractional dollars', () => {
+test('formatMoney formats zero', () => {
   assert.equal(formatMoney(0), '$0.00');
+});
+
+test('formatMoney formats sub-dollar cents', () => {
   assert.equal(formatMoney(5), '$0.05');
+});
+
+test('formatMoney formats whole and fractional dollars', () => {
   assert.equal(formatMoney(1234), '$12.34');
-  assert.equal(formatMoney(100000), '$1000.00');
+});
+
+test('formatMoney groups thousands with a comma', () => {
+  assert.equal(formatMoney(100000), '$1,000.00');
+});
+
+test('formatMoney groups millions with multiple commas', () => {
+  assert.equal(formatMoney(123456789), '$1,234,567.89');
 });
 
 test('formatMoney handles negative amounts', () => {
   assert.equal(formatMoney(-750), '-$7.50');
+});
+
+test('formatMoney groups negative thousands with a comma before the sign', () => {
+  assert.equal(formatMoney(-100000), '-$1,000.00');
 });
 
 test('formatMoney rejects non-integer cents', () => {
