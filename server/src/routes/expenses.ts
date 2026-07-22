@@ -42,8 +42,8 @@ router.post('/', (req: Request, res: Response): void => {
     });
     return;
   }
-  if (!Number.isInteger(amount_cents) || amount_cents <= 0) {
-    res.status(400).json({ error: 'amount_cents must be a positive integer (cents)' });
+  if (!Number.isInteger(amount_cents) || amount_cents === 0) {
+    res.status(400).json({ error: 'amount_cents must be a non-zero integer (cents)' });
     return;
   }
   if (
