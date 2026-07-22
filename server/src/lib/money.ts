@@ -18,13 +18,16 @@ export function formatMoney(cents: number): string {
 /**
  * Split an integer amount of cents evenly across `count` people. Because cents
  * are indivisible, any leftover is distributed one cent at a time to the first
- * `remainder` shares, so the shares always sum back to `total`.
+ * `remainder` shares, so the shares always sum back to `total`. `total` may be
+ * negative to represent a refund/credit; the shares are then negative too but
+ * still sum back to `total`.
  *
  * splitEvenCents(1000, 3) -> [334, 333, 333]
+ * splitEvenCents(-600, 2) -> [-300, -300]
  */
 export function splitEvenCents(total: number, count: number): number[] {
-  if (!Number.isInteger(total) || total < 0) {
-    throw new RangeError('total must be a non-negative integer number of cents');
+  if (!Number.isInteger(total)) {
+    throw new RangeError('total must be an integer number of cents');
   }
   if (!Number.isInteger(count) || count <= 0) {
     throw new RangeError('count must be a positive integer');
