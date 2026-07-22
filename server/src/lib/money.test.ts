@@ -36,6 +36,8 @@ test('splitEvenCents rejects a non-positive count', () => {
   assert.throws(() => splitEvenCents(100, -2), RangeError);
 });
 
-test('splitEvenCents rejects a negative total', () => {
-  assert.throws(() => splitEvenCents(-100, 3), RangeError);
+test('splitEvenCents splits a negative total (refund/credit) and sums back to the total', () => {
+  const shares = splitEvenCents(-100, 3);
+  assert.deepEqual(shares, [-33, -33, -34]);
+  assert.equal(shares.reduce((a, b) => a + b, 0), -100);
 });

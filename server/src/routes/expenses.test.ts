@@ -70,12 +70,27 @@ test('POST /api/expenses creates an expense', async () => {
   assert.equal(created.amount_cents, 2500);
 });
 
+test('POST /api/expenses accepts a negative amount_cents as a refund with 201', async () => {
+  const res = await call('POST', '/api/expenses', {
+    description: 'Refund',
+    amount_cents: -600,
+    paid_by: 'alice',
+    participants: ['alice', 'bob'],
+    category: 'Food',
+    spent_on: '2024-06-01',
+  });
+  assert.equal(res.status, 201);
+  const created = res.json as { id: number; amount_cents: number };
+  assert.ok(created.id > 0);
+  assert.equal(created.amount_cents, -600);
+});
+
 test('POST /api/expenses rejects missing fields with 400', async () => {
   const res = await call('POST', '/api/expenses', { description: 'Incomplete' });
   assert.equal(res.status, 400);
 });
 
-test('POST /api/expenses rejects a non-positive amount with 400', async () => {
+test('POST /api/expenses rejects a zero amount_cents with 400', async () => {
   const res = await call('POST', '/api/expenses', {
     description: 'Free thing',
     amount_cents: 0,
