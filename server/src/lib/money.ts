@@ -23,8 +23,8 @@ export function formatMoney(cents: number): string {
  * splitEvenCents(1000, 3) -> [334, 333, 333]
  */
 export function splitEvenCents(total: number, count: number): number[] {
-  if (!Number.isInteger(total) || total < 0) {
-    throw new RangeError('total must be a non-negative integer number of cents');
+  if (!Number.isInteger(total)) {
+    throw new RangeError('total must be an integer number of cents');
   }
   if (!Number.isInteger(count) || count <= 0) {
     throw new RangeError('count must be a positive integer');

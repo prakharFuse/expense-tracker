@@ -13,6 +13,16 @@ test('computeBalances nets payments against shares and sums to zero', () => {
   assert.equal(sum, 0);
 });
 
+test('computeBalances splits a refund (negative amount) without throwing', () => {
+  const balances = computeBalances([
+    { amountCents: -600, paidBy: 'Alice', participants: ['Alice', 'Bob'] },
+  ]);
+  assert.equal(balances.get('Alice'), -300);
+  assert.equal(balances.get('Bob'), 300);
+  const sum = [...balances.values()].reduce((a, b) => a + b, 0);
+  assert.equal(sum, 0);
+});
+
 test('computeBalances rejects an expense with no participants', () => {
   assert.throws(
     () => computeBalances([{ amountCents: 1000, paidBy: 'alice', participants: [] }]),

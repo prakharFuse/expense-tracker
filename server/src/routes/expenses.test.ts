@@ -75,7 +75,7 @@ test('POST /api/expenses rejects missing fields with 400', async () => {
   assert.equal(res.status, 400);
 });
 
-test('POST /api/expenses rejects a non-positive amount with 400', async () => {
+test('POST /api/expenses rejects a zero amount with 400', async () => {
   const res = await call('POST', '/api/expenses', {
     description: 'Free thing',
     amount_cents: 0,
@@ -85,6 +85,37 @@ test('POST /api/expenses rejects a non-positive amount with 400', async () => {
     spent_on: '2024-06-02',
   });
   assert.equal(res.status, 400);
+});
+
+test('POST /api/expenses accepts a negative amount (refund) with 201', async () => {
+  const res = await call('POST', '/api/expenses', {
+    description: 'Refund',
+    amount_cents: -600,
+    paid_by: 'alice',
+    participants: ['alice', 'bob'],
+    category: 'Misc',
+    spent_on: '2024-06-02',
+  });
+  assert.equal(res.status, 201);
+  const created = res.json as { id: number; amount_cents: number };
+  assert.ok(created.id > 0);
+  assert.equal(created.amount_cents, -600);
+});
+
+test('GET /api/expenses/balances still sums to zero after a refund', async () => {
+  await call('POST', '/api/expenses', {
+    description: 'Refund for balances check',
+    amount_cents: -600,
+    paid_by: 'alice',
+    participants: ['alice', 'bob'],
+    category: 'Misc',
+    spent_on: '2024-06-02',
+  });
+  const res = await call('GET', '/api/expenses/balances');
+  assert.equal(res.status, 200);
+  const body = res.json as { balances: { person: string; amountCents: number }[] };
+  const sum = body.balances.reduce((acc, b) => acc + b.amountCents, 0);
+  assert.equal(sum, 0);
 });
 
 test('POST /api/expenses rejects empty participants with 400', async () => {
