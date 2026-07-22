@@ -18,22 +18,27 @@ export function formatMoney(cents: number): string {
 /**
  * Split an integer amount of cents evenly across `count` people. Because cents
  * are indivisible, any leftover is distributed one cent at a time to the first
- * `remainder` shares, so the shares always sum back to `total`.
+ * `remainder` shares, so the shares always sum back to `total`. `total` may be
+ * negative (e.g. a refund); the split is computed on its magnitude and the
+ * sign is reapplied to each share.
  *
  * splitEvenCents(1000, 3) -> [334, 333, 333]
+ * splitEvenCents(-1000, 3) -> [-334, -333, -333]
  */
 export function splitEvenCents(total: number, count: number): number[] {
-  if (!Number.isInteger(total) || total < 0) {
-    throw new RangeError('total must be a non-negative integer number of cents');
+  if (!Number.isInteger(total)) {
+    throw new RangeError('total must be an integer number of cents');
   }
   if (!Number.isInteger(count) || count <= 0) {
     throw new RangeError('count must be a positive integer');
   }
-  const base = Math.floor(total / count);
-  const remainder = total - base * count;
+  const sign = Math.sign(total);
+  const magnitude = Math.abs(total);
+  const base = Math.floor(magnitude / count);
+  const remainder = magnitude - base * count;
   const shares: number[] = [];
   for (let i = 0; i < count; i += 1) {
-    shares.push(base + (i < remainder ? 1 : 0));
+    shares.push(sign * (base + (i < remainder ? 1 : 0)));
   }
   return shares;
 }

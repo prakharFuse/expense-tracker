@@ -45,3 +45,30 @@ test('settleUp produces transfers that clear every balance', () => {
 test('settleUp returns no transfers when everyone is square', () => {
   assert.deepEqual(settleUp(new Map([['a', 0], ['b', 0]])), []);
 });
+
+test('computeBalances splits a refund (negative amount) like any expense', () => {
+  const balances = computeBalances([
+    { amountCents: -600, paidBy: 'Alice', participants: ['Alice', 'Bob'] },
+  ]);
+  assert.equal(balances.get('Alice'), -300);
+  assert.equal(balances.get('Bob'), 300);
+  const sum = [...balances.values()].reduce((a, b) => a + b, 0);
+  assert.equal(sum, 0);
+});
+
+test('settleUp clears balances when a refund is mixed with a regular expense', () => {
+  const balances = computeBalances([
+    { amountCents: 3000, paidBy: 'alice', participants: ['alice', 'bob', 'carol'] },
+    { amountCents: -600, paidBy: 'alice', participants: ['alice', 'bob'] },
+  ]);
+  const transfers = settleUp(balances);
+
+  const net = new Map(balances);
+  for (const t of transfers) {
+    net.set(t.from, (net.get(t.from) ?? 0) + t.amountCents);
+    net.set(t.to, (net.get(t.to) ?? 0) - t.amountCents);
+  }
+  for (const value of net.values()) {
+    assert.equal(value, 0);
+  }
+});
