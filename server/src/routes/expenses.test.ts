@@ -129,5 +129,5 @@ test('GET /api/expenses/export returns CSV with a header row', async () => {
   const res = await call('GET', '/api/expenses/export');
   assert.equal(res.status, 200);
   assert.ok(typeof res.json === 'string');
-  assert.ok((res.json as string).startsWith('id,description,amount_cents'));
+  assert.ok((res.json as string).startsWith('expense_id,description,amount_cents'));
 });

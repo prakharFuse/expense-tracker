@@ -96,7 +96,7 @@ router.get('/balances', (_req: Request, res: Response): void => {
 router.get('/export', (_req: Request, res: Response): void => {
   const db = getDb();
   const rows = db.prepare('SELECT * FROM expenses ORDER BY id ASC').all() as unknown as ExpenseRow[];
-  const header = 'id,description,amount_cents,paid_by,participants,category,spent_on';
+  const header = 'expense_id,description,amount_cents,paid_by,participants,category,spent_on';
   const csv = [
     header,
     ...rows.map((r) =>
