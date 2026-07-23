@@ -108,9 +108,18 @@ test('GET /api/expenses/:id returns 404 for a missing expense', async () => {
 test('GET /api/expenses/stats returns totals by category', async () => {
   const res = await call('GET', '/api/expenses/stats');
   assert.equal(res.status, 200);
-  const body = res.json as { totalCents: number; byCategory: { category: string; total: number }[] };
+  const body = res.json as {
+    totalCents: number;
+    totalFormatted: string;
+    byCategory: { category: string; total: number; totalFormatted: string }[];
+  };
   assert.ok(body.totalCents > 0);
+  assert.ok(body.totalFormatted.startsWith('$'));
   assert.ok(Array.isArray(body.byCategory));
+  assert.ok(body.byCategory.length > 0, 'seed data has at least one category');
+  for (const row of body.byCategory) {
+    assert.ok(row.totalFormatted.startsWith('$'));
+  }
 });
 
 test('GET /api/expenses/balances returns balances that sum to zero', async () => {
@@ -129,5 +138,10 @@ test('GET /api/expenses/export returns CSV with a header row', async () => {
   const res = await call('GET', '/api/expenses/export');
   assert.equal(res.status, 200);
   assert.ok(typeof res.json === 'string');
-  assert.ok((res.json as string).startsWith('id,description,amount_cents'));
+  const csv = res.json as string;
+  assert.ok(csv.startsWith('id,description,amount_cents'));
+  const [header, ...bodyLines] = csv.split('\n');
+  assert.ok(header.endsWith(',amount'));
+  assert.ok(bodyLines.length > 0, 'seed data produces at least one CSV row');
+  assert.ok(bodyLines.some((line) => /,"\$[\d,]+\.\d{2}"$/.test(line)));
 });
