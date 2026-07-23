@@ -3,7 +3,9 @@
  * floating-point drift.
  */
 
-/** Format integer cents as a currency string, e.g. 1234 -> "$12.34". */
+const DOLLARS_FORMAT = new Intl.NumberFormat('en-US');
+
+/** Format integer cents as a currency string, e.g. 123456 -> "$1,234.56". */
 export function formatMoney(cents: number): string {
   if (!Number.isInteger(cents)) {
     throw new TypeError('formatMoney expects an integer number of cents');
@@ -12,7 +14,7 @@ export function formatMoney(cents: number): string {
   const abs = Math.abs(cents);
   const dollars = Math.floor(abs / 100);
   const remainder = abs % 100;
-  return `${sign}$${dollars}.${remainder.toString().padStart(2, '0')}`;
+  return `${sign}$${DOLLARS_FORMAT.format(dollars)}.${remainder.toString().padStart(2, '0')}`;
 }
 
 /**
