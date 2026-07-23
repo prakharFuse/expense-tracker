@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { getDb } from '../db.js';
 import { computeBalances, settleUp } from '../lib/settle.js';
+import { formatMoney } from '../lib/money.js';
 
 interface ExpenseRow {
   id: number;
@@ -73,7 +74,11 @@ router.get('/stats', (_req: Request, res: Response): void => {
   const byCategory = db.prepare(
     'SELECT category, SUM(amount_cents) as total FROM expenses GROUP BY category ORDER BY total DESC'
   ).all() as unknown as { category: string; total: number }[];
-  res.json({ totalCents: total.total, byCategory });
+  res.json({
+    totalCents: total.total,
+    totalFormatted: formatMoney(total.total),
+    byCategory: byCategory.map((row) => ({ ...row, totalFormatted: formatMoney(row.total) })),
+  });
 });
 
 router.get('/balances', (_req: Request, res: Response): void => {
@@ -96,11 +101,20 @@ router.get('/balances', (_req: Request, res: Response): void => {
 router.get('/export', (_req: Request, res: Response): void => {
   const db = getDb();
   const rows = db.prepare('SELECT * FROM expenses ORDER BY id ASC').all() as unknown as ExpenseRow[];
-  const header = 'id,description,amount_cents,paid_by,participants,category,spent_on';
+  const header = 'id,description,amount_cents,amount,paid_by,participants,category,spent_on';
   const csv = [
     header,
     ...rows.map((r) =>
-      [r.id, r.description, r.amount_cents, r.paid_by, `"${r.participants}"`, r.category, r.spent_on].join(',')
+      [
+        r.id,
+        r.description,
+        r.amount_cents,
+        `"${formatMoney(r.amount_cents)}"`,
+        r.paid_by,
+        `"${r.participants}"`,
+        r.category,
+        r.spent_on,
+      ].join(',')
     ),
   ].join('\n');
   res.setHeader('Content-Type', 'text/csv');
