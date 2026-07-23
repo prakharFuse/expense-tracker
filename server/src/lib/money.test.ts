@@ -6,11 +6,19 @@ test('formatMoney formats whole and fractional dollars', () => {
   assert.equal(formatMoney(0), '$0.00');
   assert.equal(formatMoney(5), '$0.05');
   assert.equal(formatMoney(1234), '$12.34');
-  assert.equal(formatMoney(100000), '$1000.00');
+  assert.equal(formatMoney(100000), '$1,000.00');
+});
+
+test('formatMoney groups thousands with commas', () => {
+  assert.equal(formatMoney(123456789), '$1,234,567.89');
 });
 
 test('formatMoney handles negative amounts', () => {
   assert.equal(formatMoney(-750), '-$7.50');
+});
+
+test('formatMoney groups negative thousands with an ASCII hyphen', () => {
+  assert.equal(formatMoney(-100000), '-$1,000.00');
 });
 
 test('formatMoney rejects non-integer cents', () => {
