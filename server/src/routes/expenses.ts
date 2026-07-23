@@ -101,13 +101,24 @@ router.get('/balances', (_req: Request, res: Response): void => {
 router.get('/export', (_req: Request, res: Response): void => {
   const db = getDb();
   const rows = db.prepare('SELECT * FROM expenses ORDER BY id ASC').all() as unknown as ExpenseRow[];
-  // Header is a frozen external contract: the finance-importer consumes this
-  // CSV positionally (see report-contract.test.ts). Do not add columns here.
-  const header = 'id,description,amount_cents,paid_by,participants,category,spent_on';
+  // Header is an external contract: the finance-importer consumes this CSV
+  // positionally (see report-contract.test.ts). The original columns must
+  // keep their order and meaning; the trailing "amount" column below is a
+  // formatted, human-readable addition appended after all original columns.
+  const header = 'id,description,amount_cents,paid_by,participants,category,spent_on,amount';
   const csv = [
     header,
     ...rows.map((r) =>
-      [r.id, r.description, r.amount_cents, r.paid_by, `"${r.participants}"`, r.category, r.spent_on].join(',')
+      [
+        r.id,
+        r.description,
+        r.amount_cents,
+        r.paid_by,
+        `"${r.participants}"`,
+        r.category,
+        r.spent_on,
+        `"${formatMoney(r.amount_cents)}"`,
+      ].join(',')
     ),
   ].join('\n');
   res.setHeader('Content-Type', 'text/csv');
