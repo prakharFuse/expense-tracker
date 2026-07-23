@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
 import express from 'express';
 import expensesRouter from './expenses.js';
+import { formatMoney } from '../lib/money.js';
 
 // Isolated throwaway DB — set before the first getDb() call (handlers call
 // getDb() lazily, so setting it here, before any request, is enough).
@@ -20,6 +21,32 @@ function makeApp(): express.Express {
 }
 
 const app = makeApp();
+
+// Minimal CSV line parser that understands double-quoted fields (which is all
+// this export format uses — no escaped quotes within a field).
+function parseCsvLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (const ch of line) {
+    if (inQuotes) {
+      if (ch === '"') {
+        inQuotes = false;
+      } else {
+        current += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ',') {
+      fields.push(current);
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  fields.push(current);
+  return fields;
+}
 
 async function call(
   method: string,
@@ -108,9 +135,18 @@ test('GET /api/expenses/:id returns 404 for a missing expense', async () => {
 test('GET /api/expenses/stats returns totals by category', async () => {
   const res = await call('GET', '/api/expenses/stats');
   assert.equal(res.status, 200);
-  const body = res.json as { totalCents: number; byCategory: { category: string; total: number }[] };
+  const body = res.json as {
+    totalCents: number;
+    totalFormatted: string;
+    byCategory: { category: string; total: number; totalFormatted: string }[];
+  };
   assert.ok(body.totalCents > 0);
   assert.ok(Array.isArray(body.byCategory));
+  assert.equal(body.totalFormatted, formatMoney(body.totalCents));
+  assert.ok(body.byCategory.length > 0);
+  for (const row of body.byCategory) {
+    assert.equal(row.totalFormatted, formatMoney(row.total));
+  }
 });
 
 test('GET /api/expenses/balances returns balances that sum to zero', async () => {
@@ -130,4 +166,19 @@ test('GET /api/expenses/export returns CSV with a header row', async () => {
   assert.equal(res.status, 200);
   assert.ok(typeof res.json === 'string');
   assert.ok((res.json as string).startsWith('id,description,amount_cents'));
+});
+
+test('GET /api/expenses/export includes a formatted amount column', async () => {
+  const res = await call('GET', '/api/expenses/export');
+  assert.equal(res.status, 200);
+  const csv = res.json as string;
+  const [header, ...dataLines] = csv.split('\n');
+  assert.equal(header, 'id,description,amount_cents,amount,paid_by,participants,category,spent_on');
+  const rows = dataLines.filter((line) => line.length > 0);
+  assert.ok(rows.length > 0);
+  for (const line of rows) {
+    const fields = parseCsvLine(line);
+    const amountCents = Number(fields[2]);
+    assert.equal(fields[3], formatMoney(amountCents));
+  }
 });
