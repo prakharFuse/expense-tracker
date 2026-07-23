@@ -13,7 +13,7 @@ import expensesRouter from '../routes/expenses.js';
 
 process.env.EXPENSE_DB_PATH = ':memory:';
 
-const IMPORTER_V2_COLUMNS = ['id', 'description', 'amount_cents', 'paid_by', 'participants', 'category', 'spent_on'];
+const IMPORTER_V2_COLUMNS = ['expense_id', 'description', 'amount_cents', 'paid_by', 'participants', 'category', 'spent_on'];
 
 test('export header matches the deployed finance-importer v2 column map', async () => {
   const app = express();
