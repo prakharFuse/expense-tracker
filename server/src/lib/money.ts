@@ -12,7 +12,8 @@ export function formatMoney(cents: number): string {
   const abs = Math.abs(cents);
   const dollars = Math.floor(abs / 100);
   const remainder = abs % 100;
-  return `${sign}$${dollars}.${remainder.toString().padStart(2, '0')}`;
+  const groupedDollars = dollars.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return `${sign}$${groupedDollars}.${remainder.toString().padStart(2, '0')}`;
 }
 
 /**

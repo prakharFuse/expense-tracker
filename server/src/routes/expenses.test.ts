@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
 import express from 'express';
 import expensesRouter from './expenses.js';
+import { formatMoney } from '../lib/money.js';
 
 // Isolated throwaway DB — set before the first getDb() call (handlers call
 // getDb() lazily, so setting it here, before any request, is enough).
@@ -108,8 +109,13 @@ test('GET /api/expenses/:id returns 404 for a missing expense', async () => {
 test('GET /api/expenses/stats returns totals by category', async () => {
   const res = await call('GET', '/api/expenses/stats');
   assert.equal(res.status, 200);
-  const body = res.json as { totalCents: number; byCategory: { category: string; total: number }[] };
+  const body = res.json as {
+    totalCents: number;
+    total: string;
+    byCategory: { category: string; total: number }[];
+  };
   assert.ok(body.totalCents > 0);
+  assert.equal(body.total, formatMoney(body.totalCents));
   assert.ok(Array.isArray(body.byCategory));
 });
 
@@ -129,5 +135,21 @@ test('GET /api/expenses/export returns CSV with a header row', async () => {
   const res = await call('GET', '/api/expenses/export');
   assert.equal(res.status, 200);
   assert.ok(typeof res.json === 'string');
-  assert.ok((res.json as string).startsWith('id,description,amount_cents'));
+  const csv = res.json as string;
+  assert.ok(csv.startsWith('id,description,amount_cents'));
+  assert.ok(csv.split('\n')[0].endsWith(',amount'));
+});
+
+test('GET /api/expenses/export includes a quoted grouped amount column per row', async () => {
+  const res = await call('GET', '/api/expenses/export');
+  assert.equal(res.status, 200);
+  const [, ...rows] = (res.json as string).split('\n');
+  assert.ok(rows.length > 0, 'export has at least one data row');
+  const rowPattern = /^\d+,[^,]+,(-?\d+),[^,]+,"[^"]*",[^,]+,[^,]+,"(-?\$[\d,]+\.\d{2})"$/;
+  for (const row of rows) {
+    const match = row.match(rowPattern);
+    assert.ok(match, `row did not match expected shape: ${row}`);
+    const [, amountCents, quotedAmount] = match as RegExpMatchArray;
+    assert.equal(quotedAmount, formatMoney(Number(amountCents)));
+  }
 });
