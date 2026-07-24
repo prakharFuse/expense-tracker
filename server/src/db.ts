@@ -2,14 +2,14 @@ import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
 
-// Default to a file under data/. Tests set EXPENSE_DB_PATH=':memory:' for an
-// isolated, throwaway database so they never touch the dev file.
-const DB_PATH = process.env.EXPENSE_DB_PATH ?? path.join(process.cwd(), 'data', 'expenses.db');
-
 let db: DatabaseSync;
 
 export function getDb(): DatabaseSync {
   if (!db) {
+    // Read lazily (not at module load) so tests can set EXPENSE_DB_PATH=':memory:'
+    // after importing this module — ESM hoists imports ahead of the test file's
+    // own top-level statements, so a module-scope read would see the var too early.
+    const DB_PATH = process.env.EXPENSE_DB_PATH ?? path.join(process.cwd(), 'data', 'expenses.db');
     if (DB_PATH !== ':memory:') {
       fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
     }

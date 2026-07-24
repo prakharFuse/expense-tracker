@@ -113,6 +113,30 @@ test('GET /api/expenses/stats returns totals by category', async () => {
   assert.ok(Array.isArray(body.byCategory));
 });
 
+test('GET /api/expenses/stats formats a large per-category total with thousands separators', async () => {
+  const created = await call('POST', '/api/expenses', {
+    description: 'Enterprise contract',
+    amount_cents: 123456789,
+    paid_by: 'bob',
+    participants: ['bob', 'carol'],
+    category: 'BigTicket',
+    spent_on: '2024-06-05',
+  });
+  assert.equal(created.status, 201);
+
+  const res = await call('GET', '/api/expenses/stats');
+  assert.equal(res.status, 200);
+  const body = res.json as {
+    totalCents: number;
+    totalFormatted: string;
+    byCategory: { category: string; total: number; totalFormatted: string }[];
+  };
+  const bigTicket = body.byCategory.find((c) => c.category === 'BigTicket');
+  assert.ok(bigTicket, 'BigTicket category is present');
+  assert.equal(bigTicket?.total, 123456789);
+  assert.equal(bigTicket?.totalFormatted, '$1,234,567.89');
+});
+
 test('GET /api/expenses/balances returns balances that sum to zero', async () => {
   const res = await call('GET', '/api/expenses/balances');
   assert.equal(res.status, 200);
@@ -130,4 +154,26 @@ test('GET /api/expenses/export returns CSV with a header row', async () => {
   assert.equal(res.status, 200);
   assert.ok(typeof res.json === 'string');
   assert.ok((res.json as string).startsWith('id,description,amount_cents'));
+});
+
+test('GET /api/expenses/export formats a large amount with thousands separators', async () => {
+  const created = await call('POST', '/api/expenses', {
+    description: 'Big Ticket Purchase',
+    amount_cents: 123456789,
+    paid_by: 'alice',
+    participants: ['alice'],
+    category: 'BigTicket',
+    spent_on: '2024-06-04',
+  });
+  assert.equal(created.status, 201);
+  const { id } = created.json as { id: number };
+
+  const res = await call('GET', '/api/expenses/export');
+  assert.equal(res.status, 200);
+  const csv = res.json as string;
+  const row = csv.split('\n').find((line) => line.startsWith(`${id},`));
+  assert.equal(
+    row,
+    `${id},Big Ticket Purchase,123456789,alice,"alice",BigTicket,2024-06-04,"$1,234,567.89"`
+  );
 });
