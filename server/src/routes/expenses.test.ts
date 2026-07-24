@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import type { AddressInfo } from 'node:net';
 import express from 'express';
 import expensesRouter from './expenses.js';
+import { formatMoney } from '../lib/money.js';
 
 // Isolated throwaway DB — set before the first getDb() call (handlers call
 // getDb() lazily, so setting it here, before any request, is enough).
@@ -108,9 +109,18 @@ test('GET /api/expenses/:id returns 404 for a missing expense', async () => {
 test('GET /api/expenses/stats returns totals by category', async () => {
   const res = await call('GET', '/api/expenses/stats');
   assert.equal(res.status, 200);
-  const body = res.json as { totalCents: number; byCategory: { category: string; total: number }[] };
+  const body = res.json as {
+    totalCents: number;
+    totalDisplay: string;
+    byCategory: { category: string; total: number; totalDisplay: string }[];
+  };
   assert.ok(body.totalCents > 0);
   assert.ok(Array.isArray(body.byCategory));
+  assert.equal(body.totalDisplay, formatMoney(body.totalCents));
+  assert.ok(body.totalDisplay.includes(','), 'totalDisplay should be comma-grouped');
+  for (const entry of body.byCategory) {
+    assert.equal(entry.totalDisplay, formatMoney(entry.total));
+  }
 });
 
 test('GET /api/expenses/balances returns balances that sum to zero', async () => {
