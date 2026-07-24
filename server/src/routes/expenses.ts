@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { getDb } from '../db.js';
 import { computeBalances, settleUp } from '../lib/settle.js';
+import { formatMoney } from '../lib/money.js';
 
 interface ExpenseRow {
   id: number;
@@ -73,7 +74,11 @@ router.get('/stats', (_req: Request, res: Response): void => {
   const byCategory = db.prepare(
     'SELECT category, SUM(amount_cents) as total FROM expenses GROUP BY category ORDER BY total DESC'
   ).all() as unknown as { category: string; total: number }[];
-  res.json({ totalCents: total.total, byCategory });
+  res.json({
+    totalCents: total.total,
+    totalFormatted: formatMoney(total.total),
+    byCategory: byCategory.map((entry) => ({ ...entry, totalFormatted: formatMoney(entry.total) })),
+  });
 });
 
 router.get('/balances', (_req: Request, res: Response): void => {
